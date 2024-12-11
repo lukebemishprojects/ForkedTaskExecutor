@@ -21,11 +21,11 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public final class ForkedExecutor implements AutoCloseable {
+public final class ForkedTaskExecutor implements AutoCloseable {
     private final Process process;
     private final ResultListener listener;
 
-    public ForkedExecutor(ForkedExecutorSpec spec) {
+    public ForkedTaskExecutor(ForkedTaskExecutorSpec spec) {
         var builder = new ProcessBuilder();
         builder.redirectOutput(ProcessBuilder.Redirect.PIPE);
         builder.redirectError(ProcessBuilder.Redirect.PIPE);

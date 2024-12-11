@@ -4,14 +4,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class ForkedExecutorSpec {
+public final class ForkedTaskExecutorSpec {
     private final Path javaExecutable;
     private final List<String> jvmOptions;
     private final List<String> programOptions;
     private final boolean hideStacktrace;
     private final String taskClass;
 
-    private ForkedExecutorSpec(Path javaExecutable, List<String> jvmOptions, List<String> programOptions, boolean hideStacktrace, String taskClass) {
+    private ForkedTaskExecutorSpec(Path javaExecutable, List<String> jvmOptions, List<String> programOptions, boolean hideStacktrace, String taskClass) {
         this.javaExecutable = javaExecutable;
         this.jvmOptions = List.copyOf(jvmOptions);
         this.programOptions = List.copyOf(programOptions);
@@ -77,8 +77,8 @@ public final class ForkedExecutorSpec {
             return this;
         }
 
-        public ForkedExecutorSpec build() {
-            return new ForkedExecutorSpec(javaExecutable, jvmOptions, programOptions, hideStacktrace, taskClass);
+        public ForkedTaskExecutorSpec build() {
+            return new ForkedTaskExecutorSpec(javaExecutable, jvmOptions, programOptions, hideStacktrace, taskClass);
         }
     }
 }
