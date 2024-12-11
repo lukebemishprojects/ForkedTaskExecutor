@@ -1,4 +1,4 @@
-package dev.lukebemish.parallelrunner.runner;
+package dev.lukebemish.forkedtaskexecutor.runner;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -11,12 +11,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public final class Main implements AutoCloseable {
-    private static final boolean STACKTRACE = !Boolean.getBoolean("dev.lukebemish.parallelrunner.hidestacktrace");
-    
+    private static final boolean STACKTRACE = !Boolean.getBoolean("dev.lukebemish.forkedtaskexecutor.hidestacktrace");
+
     private final ServerSocket socket;
     private final ExecutorService executor = ExecutorUtils.newService();
     private final Task task;
-    
+
     private Main(Task task) throws IOException {
         this.task = task;
         this.socket = new ServerSocket(0);

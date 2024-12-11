@@ -32,6 +32,6 @@ runnerJar {
 
     manifest.attributes(
         'Multi-Release': 'true',
-        'Main-Class': 'dev.lukebemish.parallelrunner.runner.Main'
+        'Main-Class': 'dev.lukebemish.forkedtaskexecutor.runner.Main'
     )
 }

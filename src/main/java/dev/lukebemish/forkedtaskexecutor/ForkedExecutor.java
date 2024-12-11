@@ -1,3 +1,5 @@
+package dev.lukebemish.forkedtaskexecutor;
+
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -31,10 +33,10 @@ public final class ForkedExecutor implements AutoCloseable {
         List<String> args = new ArrayList<>();
         args.add(spec.javaExecutable().toString());
         if (spec.hideStacktrace()) {
-            args.add("-Ddev.lukebemish.parallelrunner.hidestacktrace=true");
+            args.add("-Ddev.lukebemish.forkedtaskexecutor.hidestacktrace=true");
         }
         args.addAll(spec.jvmOptions());
-        args.add("dev.lukebemish.parallelrunner.runner.Main");
+        args.add("dev.lukebemish.forkedtaskexecutor.runner.Main");
         args.add(spec.taskClass());
         args.addAll(spec.programOptions());
         builder.command(args);

@@ -1,4 +1,4 @@
-package dev.lukebemish.parallelrunner.runner;
+package dev.lukebemish.forkedtaskexecutor.runner;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
