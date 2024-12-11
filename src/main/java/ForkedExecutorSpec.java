@@ -1,0 +1,82 @@
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+
+public final class ForkedExecutorSpec {
+    private final Path javaExecutable;
+    private final List<String> jvmOptions;
+    private final List<String> programOptions;
+    private final boolean hideStacktrace;
+    private final String taskClass;
+
+    private ForkedExecutorSpec(Path javaExecutable, List<String> jvmOptions, List<String> programOptions, boolean hideStacktrace, String taskClass) {
+        this.javaExecutable = javaExecutable;
+        this.jvmOptions = List.copyOf(jvmOptions);
+        this.programOptions = List.copyOf(programOptions);
+        this.hideStacktrace = hideStacktrace;
+        this.taskClass = taskClass;
+    }
+    
+    public Path javaExecutable() {
+        return javaExecutable;
+    }
+    
+    public List<String> jvmOptions() {
+        return jvmOptions;
+    }
+    
+    public List<String> programOptions() {
+        return programOptions;
+    }
+    
+    public boolean hideStacktrace() {
+        return hideStacktrace;
+    }
+    
+    public String taskClass() {
+        return taskClass;
+    }
+    
+    public static Builder builder() {
+        return new Builder();
+    }
+    
+    public static final class Builder {
+        private Path javaExecutable;
+        private final List<String> jvmOptions = new ArrayList<>();
+        private final List<String> programOptions = new ArrayList<>();
+        private boolean hideStacktrace = false;
+        private String taskClass;
+        
+        private Builder() {}
+        
+        public Builder javaExecutable(Path javaExecutable) {
+            this.javaExecutable = javaExecutable;
+            return this;
+        }
+        
+        public Builder addJvmOption(String jvmOption) {
+            jvmOptions.add(jvmOption);
+            return this;
+        }
+        
+        public Builder addProgramOption(String programOption) {
+            programOptions.add(programOption);
+            return this;
+        }
+        
+        public Builder hideStacktrace(boolean hideStacktrace) {
+            this.hideStacktrace = hideStacktrace;
+            return this;
+        }
+        
+        public Builder taskClass(String taskClass) {
+            this.taskClass = taskClass;
+            return this;
+        }
+        
+        public ForkedExecutorSpec build() {
+            return new ForkedExecutorSpec(javaExecutable, jvmOptions, programOptions, hideStacktrace, taskClass);
+        }
+    }
+}

@@ -1,0 +1,37 @@
+plugins {
+    id 'java'
+}
+
+group = 'dev.lukebemish'
+
+sourceSets {
+    runner {}
+    runner21 {}
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+    registerFeature('runner') {
+        usingSourceSet(sourceSets.runner)
+        withSourcesJar()
+        withJavadocJar()
+    }
+}
+
+compileRunner21Java {
+    javaCompiler = javaToolchains.compilerFor {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+runnerJar {
+    into('META-INF/versions/21') {
+        from sourceSets.runner21.output
+    }
+
+    manifest.attributes(
+        'Multi-Release': 'true',
+        'Main-Class': 'dev.lukebemish.parallelrunner.runner.Main'
+    )
+}
