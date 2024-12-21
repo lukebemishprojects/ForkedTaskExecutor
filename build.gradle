@@ -35,7 +35,7 @@ managedVersioning {
                 name.set 'publishCentral'
                 buildCache()
                 needs.add('build')
-                gradlew 'Publish Central', 'publish', 'closeAndReleaseSonatypeStagingRepository'
+                gradlew 'Publish Central', 'publish', 'closeAndReleaseSonatypeStagingRepository', '--no-configuration-cache'
                 tag.set('${{needs.build.outputs.version}}')
                 sign()
                 mavenCentral()
