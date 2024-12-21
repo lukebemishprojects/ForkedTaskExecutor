@@ -3,6 +3,8 @@ package dev.lukebemish.forkedtaskexecutor.runner;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintStream;
 import java.lang.reflect.Constructor;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -22,6 +24,10 @@ public final class Main implements AutoCloseable {
         this.socket = new ServerSocket(0);
     }
 
+    private static final PrintStream OUT = System.out;
+    private static final PrintStream ERR = System.err;
+    private static final InputStream IN = System.in;
+
     public static void main(String[] args) {
         try {
             Class<?> taskClass = Class.forName(args[0], false, Main.class.getClassLoader());
@@ -32,6 +38,11 @@ public final class Main implements AutoCloseable {
             String[] otherArgs = new String[args.length - 1];
             System.arraycopy(args, 1, otherArgs, 0, otherArgs.length);
             var task = (Task) constructor.newInstance((Object) otherArgs);
+
+            System.setOut(task.replaceSystemOut(OUT));
+            System.setErr(task.replaceSystemErr(ERR));
+            System.setIn(task.replaceSystemIn(IN));
+
             try (Main runner = new Main(task)) {
                 runner.run();
             }
@@ -44,7 +55,7 @@ public final class Main implements AutoCloseable {
 
     private void run() throws IOException {
         // This tells the parent process what port we're listening on
-        System.out.println(socket.getLocalPort());
+        OUT.println(socket.getLocalPort());
         var socket = this.socket.accept();
         // Communication back to the parent is done through this handle, which ensures synchronization on the output stream.
         var socketHandle = new SocketHandle(socket);
@@ -93,9 +104,9 @@ public final class Main implements AutoCloseable {
 
     private static void logException(Throwable t) {
         if (STACKTRACE) {
-            t.printStackTrace(System.err);
+            t.printStackTrace(ERR);
         } else {
-            System.err.println(t);
+            ERR.println(t);
         }
     }
 

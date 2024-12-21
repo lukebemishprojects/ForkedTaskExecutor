@@ -130,6 +130,24 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
+jar {
+    manifest {
+        attributes(
+            'Automatic-Module-Name': 'dev.lukebemish.forkedtaskexecutor'
+        )
+    }
+}
+
+
+
+runnerJar {
+    manifest {
+        attributes(
+            'Automatic-Module-Name': 'dev.lukebemish.forkedtaskexecutor.runner'
+        )
+    }
+}
+
 testing {
     suites {
         def action = { suite ->
