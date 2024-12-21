@@ -1,5 +1,5 @@
 package dev.lukebemish.forkedtaskexecutor.runner;
 
 public interface Task {
-    byte[] run(byte[] input);
+    byte[] run(byte[] input) throws Exception;
 }

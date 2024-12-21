@@ -5,13 +5,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class ForkedTaskExecutorSpec {
-    private final Path javaExecutable;
+    private final String javaExecutable;
     private final List<String> jvmOptions;
     private final List<String> programOptions;
     private final boolean hideStacktrace;
     private final String taskClass;
 
-    private ForkedTaskExecutorSpec(Path javaExecutable, List<String> jvmOptions, List<String> programOptions, boolean hideStacktrace, String taskClass) {
+    private ForkedTaskExecutorSpec(String javaExecutable, List<String> jvmOptions, List<String> programOptions, boolean hideStacktrace, String taskClass) {
         this.javaExecutable = javaExecutable;
         this.jvmOptions = List.copyOf(jvmOptions);
         this.programOptions = List.copyOf(programOptions);
@@ -19,7 +19,7 @@ public final class ForkedTaskExecutorSpec {
         this.taskClass = taskClass;
     }
 
-    public Path javaExecutable() {
+    public String javaExecutable() {
         return javaExecutable;
     }
 
@@ -44,7 +44,7 @@ public final class ForkedTaskExecutorSpec {
     }
 
     public static final class Builder {
-        private Path javaExecutable;
+        private String javaExecutable;
         private final List<String> jvmOptions = new ArrayList<>();
         private final List<String> programOptions = new ArrayList<>();
         private boolean hideStacktrace = false;
@@ -53,6 +53,11 @@ public final class ForkedTaskExecutorSpec {
         private Builder() {}
 
         public Builder javaExecutable(Path javaExecutable) {
+            this.javaExecutable = javaExecutable.toString();
+            return this;
+        }
+
+        public Builder javaExecutable(String javaExecutable) {
             this.javaExecutable = javaExecutable;
             return this;
         }

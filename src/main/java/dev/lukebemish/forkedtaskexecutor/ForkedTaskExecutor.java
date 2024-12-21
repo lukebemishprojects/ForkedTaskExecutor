@@ -13,9 +13,11 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -31,7 +33,7 @@ public final class ForkedTaskExecutor implements AutoCloseable {
         builder.redirectError(ProcessBuilder.Redirect.PIPE);
         builder.redirectInput(ProcessBuilder.Redirect.PIPE);
         List<String> args = new ArrayList<>();
-        args.add(spec.javaExecutable().toString());
+        args.add(spec.javaExecutable());
         if (spec.hideStacktrace()) {
             args.add("-Ddev.lukebemish.forkedtaskexecutor.hidestacktrace=true");
         }
@@ -87,7 +89,7 @@ public final class ForkedTaskExecutor implements AutoCloseable {
         public void run() {
             try {
                 var reader = new BufferedReader(new InputStreamReader(stream));
-                socketPort.complete(reader.readLine());
+                socketPort.complete(Objects.requireNonNull(reader.readLine(), "No port provided by daemon"));
                 String line;
                 while ((line = reader.readLine()) != null) {
                     System.out.println(line);
@@ -294,6 +296,15 @@ public final class ForkedTaskExecutor implements AutoCloseable {
     }
 
     private final AtomicInteger id = new AtomicInteger();
+
+    public Future<byte[]> submitAsync(byte[] input) {
+        var nextId = id.getAndIncrement();
+        try {
+            return listener.submit(nextId, input);
+        } catch (IOException e) {
+            return CompletableFuture.failedFuture(e);
+        }
+    }
 
     public byte[] submit(byte[] input) {
         var nextId = id.getAndIncrement();

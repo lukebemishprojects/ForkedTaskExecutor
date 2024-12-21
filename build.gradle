@@ -116,6 +116,95 @@ runnerJar {
     )
 }
 
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation(project(':')) {
+        capabilities {
+            requireFeature('runner')
+        }
+    }
+    testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+testing {
+    suites {
+        def action = { suite ->
+            tasks.named(suite.sources.compileJavaTaskName) {
+                source sourceSets.test.java
+            }
+            tasks.named(suite.sources.processResourcesTaskName) {
+                from sourceSets.test.resources
+            }
+            configurations {
+                create("${suite.name}DaemonClasspath")
+            }
+            dependencies {
+                "${suite.name}DaemonClasspath"(project(':')) {
+                    capabilities {
+                        requireFeature('runner')
+                    }
+                }
+                "${suite.name}DaemonClasspath"(suite.sources.output)
+            }
+            suite.useJUnitJupiter()
+            suite.dependencies {
+                implementation(project())
+                implementation(project()) {
+                    capabilities {
+                        requireFeature('runner')
+                    }
+                }
+                implementation("org.junit.jupiter:junit-jupiter:5.11.4")
+                runtimeOnly("org.junit.platform:junit-platform-launcher")
+            }
+            suite.targets.configureEach {
+                testTask.configure {
+                    systemProperty 'forkedtaskexecutor.test.daemonclasspath', configurations."${suite.name}DaemonClasspath".asPath
+                    testLogging.showStandardStreams = true
+                }
+            }
+        }
+
+        def forVersion = { suite, version ->
+            suite.targets.configureEach {
+                testTask.configure {
+                    javaLauncher = javaToolchains.launcherFor {
+                        languageVersion = JavaLanguageVersion.of(version)
+                    }
+                }
+            }
+            tasks.named(suite.sources.compileJavaTaskName) {
+                javaCompiler = javaToolchains.compilerFor {
+                    languageVersion = JavaLanguageVersion.of(version)
+                }
+            }
+        }
+
+        test17(JvmTestSuite) {
+            action.call(it)
+            forVersion.call(it, 17)
+        }
+
+        test21(JvmTestSuite) {
+            action.call(it)
+            forVersion.call(it, 21)
+        }
+    }
+}
+
+test {
+    enabled = false
+}
+
+tasks.named('check') {
+    dependsOn tasks.test17
+    dependsOn tasks.test21
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {

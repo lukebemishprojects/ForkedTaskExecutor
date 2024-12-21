@@ -117,7 +117,7 @@ public final class Main implements AutoCloseable {
         synchronized void writeSuccess(int id, byte[] result) throws IOException {
             output.writeInt(id);
             output.writeBoolean(true);
-            output.write(result.length);
+            output.writeInt(result.length);
             output.write(result);
             output.flush();
         }
