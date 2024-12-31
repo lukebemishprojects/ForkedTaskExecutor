@@ -1,5 +1,7 @@
 package dev.lukebemish.forkedtaskexecutor;
 
+import org.jspecify.annotations.Nullable;
+
 import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -164,11 +166,11 @@ public final class ForkedTaskExecutor implements AutoCloseable {
     private static final class ResultListener extends Thread {
         private final Map<Integer, CompletableFuture<byte[]>> results = new ConcurrentHashMap<>();
         private final SocketHandle socketHandle;
-        private final Runnable onShutdownRequest;
+        private final @Nullable Runnable onShutdownRequest;
         // Handle uncaught exceptions by re-throwing them on shutdown
         private volatile Throwable thrownException;
 
-        private ResultListener(Socket socket, Runnable onShutdownRequest) throws IOException {
+        private ResultListener(Socket socket, @Nullable Runnable onShutdownRequest) throws IOException {
             this.socketHandle = new SocketHandle(socket);
             this.onShutdownRequest = onShutdownRequest;
             this.setUncaughtExceptionHandler((t, e) -> {
@@ -252,10 +254,13 @@ public final class ForkedTaskExecutor implements AutoCloseable {
                         int id = socketHandle.readId();
                         if (id == -2) {
                             // The child process is attempting to restart itself
-                            onShutdownRequest.run();
-                            if (results.isEmpty()) {
-                                // We assume that this executor has been properly detached from anything that could submit results; it may shut down now if it wishes
-                                socketHandle.writeAllowShutdown();
+                            if (onShutdownRequest != null) {
+                                onShutdownRequest.run();
+                                if (results.isEmpty()) {
+                                    // We assume that this executor has been properly detached from anything that could submit results; it may shut down now if it wishes
+                                    socketHandle.writeAllowShutdown();
+                                    continue;
+                                }
                             }
                         } else if (id < 0) {
                             // The child process has been sent a shutdown signal gracefully
