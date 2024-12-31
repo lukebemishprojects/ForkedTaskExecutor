@@ -2,6 +2,7 @@ package dev.lukebemish.forkedtaskexecutor.runner;
 
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.function.Supplier;
 
 public interface Task {
     byte[] run(byte[] input) throws Exception;
@@ -17,4 +18,6 @@ public interface Task {
     default PrintStream replaceSystemErr(PrintStream err) {
         return err;
     }
+
+    default void setupLifecycleWatcher(Supplier<Integer> currentTasks, Supplier<Boolean> attemptShutdown) {}
 }

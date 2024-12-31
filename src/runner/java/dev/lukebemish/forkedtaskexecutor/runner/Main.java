@@ -5,12 +5,19 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Constructor;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 public final class Main implements AutoCloseable {
     private static final boolean STACKTRACE = !Boolean.getBoolean("dev.lukebemish.forkedtaskexecutor.hidestacktrace");
@@ -44,7 +51,7 @@ public final class Main implements AutoCloseable {
             System.setIn(task.replaceSystemIn(IN));
 
             try (Main runner = new Main(task)) {
-                runner.run();
+                runner.run(task);
             }
             System.exit(0);
         } catch (Throwable t) {
@@ -53,23 +60,69 @@ public final class Main implements AutoCloseable {
         }
     }
 
-    private void run() throws IOException {
+    private void run(Task task) throws IOException {
         // This tells the parent process what port we're listening on
         OUT.println(socket.getLocalPort());
         var socket = this.socket.accept();
         // Communication back to the parent is done through this handle, which ensures synchronization on the output stream.
         var socketHandle = new SocketHandle(socket);
+        task.setupLifecycleWatcher(currentlyExecuting::get, () -> {
+            if (shutdown.get()) {
+                return true;
+            }
+            CompletableFuture<Boolean> future = new CompletableFuture<>();
+            shutdownRequest.updateAndGet(existing -> {
+                if (existing != null) {
+                    future.complete(false);
+                    return existing;
+                }
+                return future::complete;
+            });
+            try {
+                socketHandle.writeAskShutdown();
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
+            try {
+                return future.get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        });
         while (true) {
             int id = socketHandle.readId();
-            if (id == -1) {
+            if (id == -2) {
+                if (currentlyExecuting.get() == 0) {
+                    shutdown.set(true);
+                    if (shutdownRequest.get() != null) {
+                        shutdownRequest.get().accept(true);
+                    }
+                    // We are allowed to shut down, so we do
+                    socketHandle.writeShutdown();
+                    break;
+                }
+            } else if (id < 0) {
+                shutdown.set(true);
+                if (shutdownRequest.get() != null) {
+                    shutdownRequest.get().accept(true);
+                }
                 // We have been sent a signal to gracefully shutdown, so we stop processing new submissions
+                socketHandle.writeShutdown();
                 break;
+            }
+            if (shutdownRequest.get() != null) {
+                shutdownRequest.get().accept(false);
             }
             byte[] input = socketHandle.readBytes();
             // Submissions to the child process take the format ID, input bytes
             execute(id, input, socketHandle);
+            currentlyExecuting.incrementAndGet();
         }
     }
+
+    private final AtomicBoolean shutdown = new AtomicBoolean(false);
+    private final AtomicInteger currentlyExecuting = new AtomicInteger(0);
+    private final AtomicReference<Consumer<Boolean>> shutdownRequest = new AtomicReference<>(null);
 
     private void execute(int id, byte[] input, SocketHandle socketHandle) {
         executor.submit(() -> {
@@ -84,6 +137,8 @@ public final class Main implements AutoCloseable {
                     throw new RuntimeException(e);
                 }
                 throw new RuntimeException(t);
+            } finally {
+                currentlyExecuting.decrementAndGet();
             }
         });
     }
@@ -130,6 +185,16 @@ public final class Main implements AutoCloseable {
             output.writeBoolean(true);
             output.writeInt(result.length);
             output.write(result);
+            output.flush();
+        }
+
+        synchronized void writeAskShutdown() throws IOException {
+            output.writeInt(-2);
+            output.flush();
+        }
+
+        synchronized void writeShutdown() throws IOException {
+            output.writeInt(-1);
             output.flush();
         }
 

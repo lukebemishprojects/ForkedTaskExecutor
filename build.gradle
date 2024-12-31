@@ -121,6 +121,8 @@ repositories {
 }
 
 dependencies {
+    compileOnly cLibs.bundles.compileonly
+
     testImplementation(project(':')) {
         capabilities {
             requireFeature('runner')

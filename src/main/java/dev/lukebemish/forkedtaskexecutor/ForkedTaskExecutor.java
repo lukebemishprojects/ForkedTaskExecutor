@@ -65,7 +65,7 @@ public final class ForkedTaskExecutor implements AutoCloseable {
         try {
             String socketPortString = socketPort.get(4000, TimeUnit.MILLISECONDS);
             int port = Integer.parseInt(socketPortString);
-            this.listener = new ResultListener(new Socket(InetAddress.getLoopbackAddress(), port));
+            this.listener = new ResultListener(new Socket(InetAddress.getLoopbackAddress(), port), spec.onShutdownRequest());
             this.listener.start();
         } catch (InterruptedException | ExecutionException | TimeoutException | IOException e) {
             throw new RuntimeException(e);
@@ -118,6 +118,11 @@ public final class ForkedTaskExecutor implements AutoCloseable {
             output.flush();
         }
 
+        synchronized void writeAllowShutdown() throws IOException {
+            output.writeInt(-2);
+            output.flush();
+        }
+
         // Will be true only if a shutdown signal is successfully sent to the channel.
         private volatile boolean gracefulShutdown = false;
 
@@ -159,11 +164,13 @@ public final class ForkedTaskExecutor implements AutoCloseable {
     private static final class ResultListener extends Thread {
         private final Map<Integer, CompletableFuture<byte[]>> results = new ConcurrentHashMap<>();
         private final SocketHandle socketHandle;
+        private final Runnable onShutdownRequest;
         // Handle uncaught exceptions by re-throwing them on shutdown
         private volatile Throwable thrownException;
 
-        private ResultListener(Socket socket) throws IOException {
+        private ResultListener(Socket socket, Runnable onShutdownRequest) throws IOException {
             this.socketHandle = new SocketHandle(socket);
+            this.onShutdownRequest = onShutdownRequest;
             this.setUncaughtExceptionHandler((t, e) -> {
                 try {
                     shutdown(e);
@@ -243,7 +250,14 @@ public final class ForkedTaskExecutor implements AutoCloseable {
                 if (!closed.get()) {
                     while (!closed.get()) {
                         int id = socketHandle.readId();
-                        if (id == -1) {
+                        if (id == -2) {
+                            // The child process is attempting to restart itself
+                            onShutdownRequest.run();
+                            if (results.isEmpty()) {
+                                // We assume that this executor has been properly detached from anything that could submit results; it may shut down now if it wishes
+                                socketHandle.writeAllowShutdown();
+                            }
+                        } else if (id < 0) {
                             // The child process has been sent a shutdown signal gracefully
                             shutdown(new IOException("Listener is closed"));
                             break;

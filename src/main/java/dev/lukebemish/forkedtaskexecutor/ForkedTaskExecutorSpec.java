@@ -1,5 +1,7 @@
 package dev.lukebemish.forkedtaskexecutor;
 
+import org.jspecify.annotations.Nullable;
+
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,13 +12,15 @@ public final class ForkedTaskExecutorSpec {
     private final List<String> programOptions;
     private final boolean hideStacktrace;
     private final String taskClass;
+    private final @Nullable Runnable onShutdownRequest;
 
-    private ForkedTaskExecutorSpec(String javaExecutable, List<String> jvmOptions, List<String> programOptions, boolean hideStacktrace, String taskClass) {
+    private ForkedTaskExecutorSpec(String javaExecutable, List<String> jvmOptions, List<String> programOptions, boolean hideStacktrace, String taskClass, @Nullable Runnable onShutdownRequest) {
         this.javaExecutable = javaExecutable;
         this.jvmOptions = List.copyOf(jvmOptions);
         this.programOptions = List.copyOf(programOptions);
         this.hideStacktrace = hideStacktrace;
         this.taskClass = taskClass;
+        this.onShutdownRequest = onShutdownRequest;
     }
 
     public String javaExecutable() {
@@ -39,6 +43,10 @@ public final class ForkedTaskExecutorSpec {
         return taskClass;
     }
 
+    public @Nullable Runnable onShutdownRequest() {
+        return onShutdownRequest;
+    }
+
     public static Builder builder() {
         return new Builder();
     }
@@ -49,6 +57,7 @@ public final class ForkedTaskExecutorSpec {
         private final List<String> programOptions = new ArrayList<>();
         private boolean hideStacktrace = false;
         private String taskClass;
+        private @Nullable Runnable onShutdownRequest;
 
         private Builder() {}
 
@@ -82,8 +91,13 @@ public final class ForkedTaskExecutorSpec {
             return this;
         }
 
+        public Builder onShutdownRequest(Runnable onShutdownRequest) {
+            this.onShutdownRequest = onShutdownRequest;
+            return this;
+        }
+
         public ForkedTaskExecutorSpec build() {
-            return new ForkedTaskExecutorSpec(javaExecutable, jvmOptions, programOptions, hideStacktrace, taskClass);
+            return new ForkedTaskExecutorSpec(javaExecutable, jvmOptions, programOptions, hideStacktrace, taskClass, onShutdownRequest);
         }
     }
 }
