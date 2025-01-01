@@ -60,6 +60,10 @@ public final class ForkedTaskExecutor implements AutoCloseable {
                     System.err.println(line);
                 }
             } catch (IOException e) {
+                if (ForkedTaskExecutor.this.listener.closed.get()) {
+                    // The listener closed, possibly closing this stream as we were processing a line; this is fine
+                    return;
+                }
                 throw new UncheckedIOException(e);
             }
         }).start();
@@ -74,7 +78,7 @@ public final class ForkedTaskExecutor implements AutoCloseable {
         }
     }
 
-    private static final class StreamWrapper extends Thread {
+    private final class StreamWrapper extends Thread {
         private final InputStream stream;
         private final CompletableFuture<String> socketPort;
 
@@ -97,6 +101,10 @@ public final class ForkedTaskExecutor implements AutoCloseable {
                     System.out.println(line);
                 }
             } catch (IOException exception) {
+                if (ForkedTaskExecutor.this.listener.closed.get()) {
+                    // The listener closed, possibly closing this stream as we were processing a line; this is fine
+                    return;
+                }
                 throw new UncheckedIOException(exception);
             }
         }
